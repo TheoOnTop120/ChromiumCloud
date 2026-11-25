@@ -1,0 +1,31 @@
+services:
+  chromium-gateway:
+    build: .
+    container_name: chromium-gateway
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - DB_PATH=/data/chromium-cloud.sqlite
+      - DOCKER_NETWORK=nginx-proxy-manager_default
+      - CHROMIUM_IMAGE=lscr.io/linuxserver/chromium:latest
+      - MAX_SESSIONS=10
+      - IDLE_STOP_MS=1800000
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - chromium-gateway-data:/data
+    networks:
+      - npm
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+networks:
+  npm:
+    external: true
+    name: nginx-proxy-manager_default
+volumes:
+  chromium-gateway-data:

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chromium Cloud — Your browser, anywhere</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/theme.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <div class="container nav">
+    <div class="brand"><div class="logo">C</div>Chromium Cloud</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle" data-theme-toggle aria-label="Theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="btn btn-ghost btn-sm" href="/login">Sign in</a>
+      <a class="btn btn-primary btn-sm" href="/register">Get started</a>
+    </div>
+  </div>
+</div>
+
+<main class="hero container">
+  <div class="badge badge-accent" style="margin-bottom:28px;">PRIVATE BROWSING / 10 USERS</div>
+  <h1>Your browser.<br><em>Everywhere.</em></h1>
+  <p class="sub">A dedicated Chromium workspace in the cloud. Persistent profiles, isolated sessions and instant access from any device.</p>
+  <div class="actions">
+    <a class="btn btn-primary btn-lg" href="/register">Open your workspace</a>
+    <a class="btn btn-secondary btn-lg" href="/login">Sign in</a>
+  </div>
+  <div style="display:flex;gap:36px;margin-top:52px;flex-wrap:wrap;">
+    <div><div style="font-size:22px;font-weight:800;">10</div><div class="muted small">Concurrent users</div></div>
+    <div><div style="font-size:22px;font-weight:800;">01</div><div class="muted small">Private profile</div></div>
+    <div><div style="font-size:22px;font-weight:800;">24/7</div><div class="muted small">Available</div></div>
+  </div>
+</main>
+
+<section id="features" class="container" style="padding:72px 24px;">
+  <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:28px;gap:20px;">
+    <div>
+      <div class="muted small" style="font-family:var(--mono);text-transform:uppercase;margin-bottom:8px;">System / Capabilities</div>
+      <h2 style="font-size:44px;line-height:1;letter-spacing:-.05em;margin:0;">Built for real work</h2>
+    </div>
+  </div>
+  <div class="grid grid-auto">
+    <div class="feature"><div class="ic">01</div><h3>Isolated profiles</h3><p>Each account has a dedicated container and persistent volume. Profiles never cross.</p></div>
+    <div class="feature"><div class="ic">02</div><h3>Protected access</h3><p>Role-based permissions, CSRF protection, Argon2 passwords and a server-side audit trail.</p></div>
+    <div class="feature"><div class="ic">03</div><h3>Live operations</h3><p>Control browser sessions, users and resources from one consolidated control center.</p></div>
+    <div class="feature"><div class="ic">04</div><h3>Resource limits</h3><p>CPU and RAM limits keep the platform predictable. Idle sessions stop automatically.</p></div>
+    <div class="feature"><div class="ic">05</div><h3>Persistent data</h3><p>Cookies, history, bookmarks and settings remain available across restarts.</p></div>
+    <div class="feature"><div class="ic">06</div><h3>Personal access</h3><p>Open the same private workspace from a laptop, tablet or another network.</p></div>
+  </div>
+</section>
+
+<section id="how" class="container" style="padding:72px 24px 96px;border-top:1px solid var(--border);">
+  <div style="margin-bottom:32px;">
+    <div class="muted small" style="font-family:var(--mono);text-transform:uppercase;margin-bottom:8px;">Process / 3 steps</div>
+    <h2 style="font-size:44px;line-height:1;letter-spacing:-.05em;margin:0;">How it works</h2>
+  </div>
+  <div class="grid grid-3">
+    <div class="card"><div style="font-size:40px;font-weight:800;color:var(--accent);opacity:.25;">01</div><h3 style="margin:8px 0 6px;">Sign in</h3><p class="muted small">Use your account or the admin credentials to authenticate.</p></div>
+    <div class="card"><div style="font-size:40px;font-weight:800;color:var(--accent);opacity:.25;">02</div><h3 style="margin:8px 0 6px;">Launch</h3><p class="muted small">Your dedicated Chromium container starts automatically on first access.</p></div>
+    <div class="card"><div style="font-size:40px;font-weight:800;color:var(--accent);opacity:.25;">03</div><h3 style="margin:8px 0 6px;">Browse</h3><p class="muted small">Open your browser in a tab. Data persists across sessions.</p></div>
+  </div>
+  <div style="text-align:center;margin-top:48px;">
+    <a class="btn btn-primary btn-lg" href="/register">Ready? Create your account</a>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--border);padding:24px;text-align:center;color:var(--muted);font-size:12px;">
+  Chromium Cloud · theoserver.duckdns.org · v2.0
+</footer>
+</body>
+</html>

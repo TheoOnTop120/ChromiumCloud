@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chromium Portal</title>
+<style>
+:root{--bg:#f5f6f8;--card:#ffffff;--accent:#2563eb;--text:#111827;--muted:#6b7280;--border:#e5e7eb}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.wrap{max-width:640px;width:100%}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:12px}
+h1{margin:0 0 4px;font-size:20px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{padding:8px 14px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-weight:500;cursor:pointer;font-size:13px}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.status{font-size:13px;color:var(--muted);margin-top:10px;padding:8px 10px;background:#f9fafb;border:1px solid var(--border);border-radius:6px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.mini{background:#f9fafb;border:1px solid var(--border);border-radius:6px;padding:10px}
+.mini .l{color:var(--muted);font-size:11px;text-transform:uppercase}
+.mini .v{font-size:18px;font-weight:700;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Chromium Portal</h1>
+  <p class="sub" id="who">Loading...</p>
+  <div class="card">
+    <h2>Your browser</h2>
+    <p>Open your personal Chromium session in a new tab.</p>
+    <div class="row">
+      <button class="primary" onclick="openBrowser()">Open Chromium</button>
+      <button onclick="start()">Start / wake</button>
+      <button onclick="stop()">Stop</button>
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+    <div class="status" id="status">Loading...</div>
+    <div class="grid">
+      <div class="mini"><div class="l">State</div><div class="v" id="st">-</div></div>
+      <div class="mini"><div class="l">Active sessions</div><div class="v" id="ac">-</div></div>
+      <div class="mini"><div class="l">Limit</div><div class="v" id="mx">-</div></div>
+    </div>
+  </div>
+  <div class="card" id="adminCard" style="display:none">
+    <h2>Administration</h2>
+    <p>You are an administrator.</p>
+    <div class="row"><a href="/admin"><button class="primary">Open admin panel</button></a></div>
+  </div>
+</div>
+<script>
+async function me(){const r=await fetch('/api/auth/me',{credentials:'same-origin'});if(!r.ok){location.href='/login';return;}const j=await r.json();document.getElementById('who').textContent='Signed in as '+j.user.username+' ('+j.user.role+')';if(j.user.role==='admin')document.getElementById('adminCard').style.display='block';}
+async function csrf(){const r=await fetch('/api/csrf',{credentials:'same-origin'});const j=await r.json();return j.csrfToken;}
+async function start(){const r=await fetch('/api/container/start',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':await csrf()}});const j=await r.json().catch(()=>({}));toast(r.ok?'Browser started.':'Error: '+(j.error||r.status));status();}
+async function stop(){await fetch('/api/container/stop',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':await csrf()}});toast('Stop requested');status();}
+async function logout(){await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':await csrf()}});location.href='/login';}
+function openBrowser(){window.open('/','_blank');}
+async function status(){const r=await fetch('/api/container/status',{credentials:'same-origin'});if(r.ok){const j=await r.json();document.getElementById('status').textContent='State: '+(j.running?'running':'stopped')+' | active sessions: '+j.active+'/'+j.max;document.getElementById('st').textContent=j.running?'Running':'Stopped';document.getElementById('ac').textContent=j.active;document.getElementById('mx').textContent=j.max;}}
+function toast(msg){const s=document.getElementById('status');const p=s.textContent;s.textContent=msg;setTimeout(status,2000);}
+me();status();setInterval(status,10000);
+</script>
+</body>
+</html>
