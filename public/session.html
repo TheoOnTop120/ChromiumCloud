@@ -19,8 +19,11 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
   </button>
 </div>
-<iframe id="fr" class="browser" src="/browser/"></iframe>
+<iframe id="fr" class="browser" title="Chromium browser"></iframe>
 <script>
+const sessionId=location.pathname.split('/')[2];
+const browserPath='/browser/'+encodeURIComponent(sessionId)+'/';
+document.getElementById('fr').src=browserPath;
 async function csrf(){const r=await fetch('/api/csrf',{credentials:'same-origin'});const j=await r.json();return j.csrfToken;}
 async function start(){const r=await fetch('/api/container/start',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':await csrf()}});const j=await r.json().catch(()=>({}));document.getElementById('status').textContent=r.ok?'Running':'Error: '+(j.error||r.status);}
 async function stop(){await fetch('/api/container/stop',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':await csrf()}});document.getElementById('status').textContent='Stopped';}

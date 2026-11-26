@@ -46,6 +46,13 @@ function migrate(database) {
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash);
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+    CREATE TABLE IF NOT EXISTS browser_sessions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      display_name TEXT NOT NULL DEFAULT 'Personal browser',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      last_activity_at TEXT
+    );
     CREATE TABLE IF NOT EXISTS audit_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       actor_user_id INTEGER,
@@ -61,6 +68,11 @@ function migrate(database) {
   tryAlter('ALTER TABLE users ADD COLUMN last_login_at TEXT;');
   tryAlter('ALTER TABLE users ADD COLUMN display_name TEXT;');
   tryAlter('ALTER TABLE users ADD COLUMN updated_at TEXT;');
+  const users = database.prepare('SELECT id FROM users').all();
+  const addBrowserSession = database.prepare(
+    "INSERT OR IGNORE INTO browser_sessions (id, user_id) VALUES (?, ?)"
+  );
+  for (const user of users) addBrowserSession.run(crypto.randomUUID(), user.id);
 }
 
 function nowIso() { return new Date().toISOString(); }
@@ -106,6 +118,25 @@ function updateUser(id, fields) {
 function deleteUser(id) {
   const d = getDb();
   d.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+function ensureBrowserSession(userId) {
+  const d = getDb();
+  let session = d.prepare('SELECT * FROM browser_sessions WHERE user_id = ?').get(userId);
+  if (!session) {
+    d.prepare('INSERT OR IGNORE INTO browser_sessions (id, user_id) VALUES (?, ?)')
+      .run(crypto.randomUUID(), userId);
+    session = d.prepare('SELECT * FROM browser_sessions WHERE user_id = ?').get(userId);
+  }
+  return session || null;
+}
+
+function getBrowserSessionById(id) {
+  return getDb().prepare('SELECT * FROM browser_sessions WHERE id = ?').get(id) || null;
+}
+
+function touchBrowserSession(id) {
+  getDb().prepare("UPDATE browser_sessions SET last_activity_at = datetime('now') WHERE id = ?").run(id);
 }
 
 function createSession(userId, tokenHash, csrfTokenHash, ttlHours = 8) {
@@ -177,6 +208,9 @@ module.exports = {
   listUsers,
   updateUser,
   deleteUser,
+  ensureBrowserSession,
+  getBrowserSessionById,
+  touchBrowserSession,
   createSession,
   getActiveSession,
   touchSession,

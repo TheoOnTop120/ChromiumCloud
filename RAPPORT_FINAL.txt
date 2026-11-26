@@ -1,0 +1,70 @@
+RAPPORT FINAL - ChromiumCloud
+Date: 2026-11-25
+
+1. Résultat
+Une base ChromiumCloud a été durcie et documentée. Le code comporte une application Express, une base SQLite, l’authentification Argon2id, des contrôles CSRF et de rôle, une interface d’administration, un gestionnaire de conteneurs Chromium et un proxy HTTP/WebSocket authentifié.
+
+Ce dépôt n’a pas pu être démarré dans l’environnement de travail : Node.js, Docker et le socket Docker n’y sont pas disponibles. L’intégration réelle avec Chromium, NPM, l’hôte Ubuntu et le profil personnel reste donc à exécuter sur le serveur. Le résultat ne peut pas être qualifié d’application live validée.
+
+2. Architecture et technologies
+- Node.js 24 et Express 4.
+- SQLite natif de Node.js pour utilisateurs, sessions d’authentification, UUID de session navigateur et journaux d’audit.
+- Hashage Argon2id via l’API crypto native de Node.js.
+- Conteneurs dynamiques basés sur lscr.io/linuxserver/chromium:latest, un profil-volume par utilisateur.
+- Proxy HTTP et WebSocket depuis le gateway.
+- Nginx Proxy Manager reste un service externe et n’a pas été modifié.
+
+3. Modifications apportées
+- Ajout d’une table browser_sessions et génération/migration d’un UUID stable par utilisateur.
+- Contrôle de format et de propriété des UUID sur les pages de session et le proxy HTTP/WebSocket.
+- Mise à jour de la page Chromium pour utiliser le chemin de session UUID.
+- Échappement HTML des données utilisateur, des journaux et de la configuration affichés dans l’administration.
+- Compose connecte le gateway au réseau NPM externe existant et prévoit un réseau dédié chromiumcloud-browser pour les navigateurs.
+- Plafond de 11 navigateurs simultanés par défaut et suppression de l’option seccomp=unconfined.
+- Remplacement dans home.html d’une affirmation non vérifiée concernant la conservation du profil existant.
+- Création de README.md, INSTALLATION.md, ARCHITECTURE.md, SECURITY.md et du présent rapport. Mise à jour de .env.example.
+
+Aucun fichier n’a été supprimé. Aucun conteneur, réseau, volume, Proxy Host ou configuration système n’a été créé, modifié ou supprimé depuis cet environnement.
+
+4. Services, ports et volumes prévus
+- Service Compose défini : chromium-gateway.
+- Conteneurs Chromium créés dynamiquement à l’usage, pas dix services codés en dur.
+- Port 3000 interne au gateway et port 3000 interne aux navigateurs. Aucun port hôte n’est publié.
+- Réseau externe réutilisé : nginx-proxy-manager_default (son existence n’a pas pu être vérifiée ici).
+- Réseau de projet défini : chromiumcloud-browser.
+- Volume de données Compose : chromiumcloud_chromium-gateway-data sous le nom de projet par défaut.
+- Volumes de profils prévus : chromiumcloud_profile_<user-id>.
+- Les volumes et réseaux n’ont pas été effectivement créés dans cette session.
+
+5. Fonctionnalités présentes dans le code, non validées en exécution
+Authentification et rôles, création d’utilisateurs depuis l’administration, UUID et vérification de propriété, démarrage/arrêt/reprise des navigateurs, persistance par volume, proxy navigateur, contrôles CSRF, journal d’audit, limites de ressources et pages d’administration.
+
+Le modèle actuel prévoit un profil par utilisateur, pas plusieurs sessions indépendantes par utilisateur. Les flux complets d’administration CRUD de sessions UUID et de réinitialisation destructive du profil ne sont pas implémentés. Les navigateurs partagent le même réseau bridge dédié et ne sont donc pas isolés entre eux au niveau réseau. Le gateway a accès au socket Docker sans proxy d’autorisation.
+
+6. Vérifications réellement effectuées
+- Inspection des sources, dépendances, Compose, pages statiques, scripts et état Git.
+- Diagnostics éditeur sur server.js, src/auth.js, src/db.js, src/containers.js, public/session.html et public/admin.html : aucune erreur statique signalée.
+- `git diff --check` : aucune erreur de whitespace.
+- `git status --short --branch` : branche main propre avant modification.
+- `docker ps -a` : non exécuté, commande docker introuvable.
+- `stat /var/run/docker.sock` : échec, socket absent.
+- `node --version` : échec, commande node introuvable.
+- Validation YAML avec `python3` : non exécutée, commande python3 introuvable.
+- Aucun test de démarrage, lint npm, build d’image, login, création de session, rendu graphique, navigation, cookies, isolation, redémarrage ou logs Docker n’a été exécuté.
+
+7. Session personnelle et points bloquants
+La session existante `chrome.theoserver.duckdns.org` n’a pas pu être inspectée : ni démon Docker ni socket ne sont présents dans l’environnement. Aucun nom de conteneur, volume, ID utilisateur ou profil ne peut être confirmé. Aucune opération destructive n’a été exécutée. Ne pas déployer ni prétendre que le profil est mappé avant l’inventaire et la sauvegarde du conteneur et volume sur l’hôte.
+
+8. Étapes manuelles requises sur l’hôte Ubuntu
+- Inventorier `docker ps -a`, `docker network ls` et `docker volume ls`; inspecter le conteneur Chromium actuel et ses montages.
+- Sauvegarder le profil personnel et la base avant toute migration ou démarrage.
+- Confirmer l’existence de `nginx-proxy-manager_default`.
+- Copier `.env.example` en `.env`, remplacer ADMIN_PASSWORD par un secret aléatoire privé, puis vérifier les limites de ressources.
+- Construire et démarrer avec `docker compose up -d --build`; exécuter les tests de bout en bout documentés dans INSTALLATION.md.
+- Configurer manuellement dans NPM `chromium.theoserver.duckdns.org` vers `http://chromium-gateway:3000`, WebSockets activés et TLS actif. Ne pas modifier le Proxy Host `chrome.theoserver.duckdns.org` avant d’avoir confirmé son profil.
+- Avant une mise en production multi-utilisateur non fiable, ajouter un proxy Docker à API restreinte et une isolation réseau par session, puis valider le profil sandbox Chromium.
+
+9. URL prévues
+- Interface : https://chromium.theoserver.duckdns.org (NPM manuel requis; non vérifié).
+- Session personnelle préexistante : https://chrome.theoserver.duckdns.org (non inspectée, non modifiée depuis cet environnement).
+- Administration : https://chromium.theoserver.duckdns.org/admin (protégée par le rôle ADMIN).

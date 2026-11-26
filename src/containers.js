@@ -3,8 +3,8 @@ const { execFileSync, execFile } = require('node:child_process');
 const http = require('node:http');
 
 const IMAGE = process.env.CHROMIUM_IMAGE || 'lscr.io/linuxserver/chromium:latest';
-const NETWORK = process.env.DOCKER_NETWORK || 'nginx-proxy-manager_default';
-const MAX_SESSIONS = parseInt(process.env.MAX_SESSIONS || '10', 10);
+const NETWORK = process.env.DOCKER_NETWORK || 'chromiumcloud-browser';
+const MAX_SESSIONS = parseInt(process.env.MAX_SESSIONS || '11', 10);
 const IDLE_STOP_MS = parseInt(process.env.IDLE_STOP_MS || String(30*60*1000), 10);
 const lastActivity = new Map();
 
@@ -123,7 +123,6 @@ async function startContainer(userId) {
     '--name', name,
     '--network', NETWORK,
     '--restart', 'unless-stopped',
-    '--security-opt', 'seccomp=unconfined',
     '--shm-size', '1g',
     '--memory', '1200m',
     '--cpus', '0.5',

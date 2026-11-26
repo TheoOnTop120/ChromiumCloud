@@ -70,6 +70,7 @@ function bootstrapAdmin() {
   (async () => {
     const hash = await auth.hashPassword(password);
     const id = db.createUser({ username, passwordHash: hash, role: 'admin' });
+    db.ensureBrowserSession(id);
     db.createAuditLog({ actorUserId: id, action: 'bootstrap_admin', targetType: 'user', targetId: id, details: 'Initial admin created' });
     console.log(`Bootstrap admin created: username=${username} id=${id}`);
   })().catch(e => console.error('bootstrap admin failed:', e));
@@ -126,8 +127,17 @@ app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ter
 // --- user pages ---
 app.get('/dashboard', requireAuthPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 app.get('/portal', requireAuthPage, (req, res) => res.redirect('/dashboard'));
-app.get('/session', requireAuthPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'session.html')));
-app.get('/session/:id', requireAuthPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'session.html')));
+app.get('/session', requireAuthPage, (req, res) => {
+  const session = db.ensureBrowserSession(req.user.id);
+  res.redirect(`/session/${session.id}`);
+});
+app.get('/session/:id', requireAuthPage, (req, res) => {
+  const session = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.id)
+    ? db.getBrowserSessionById(req.params.id)
+    : null;
+  if (!session || session.user_id !== req.user.id) return res.sendStatus(404);
+  res.sendFile(path.join(__dirname, 'public', 'session.html'));
+});
 app.get('/settings', requireAuthPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'settings.html')));
 app.get('/profile', requireAuthPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'profile.html')));
 
@@ -161,6 +171,7 @@ app.post('/api/auth/login', auth.requireSameOrigin, rateLimitLogin, async (req, 
   const token = auth.generateOpaqueToken(32);
   const csrf = auth.csrfTokenForSession(token);
   db.createSession(user.id, auth.hashToken(token), auth.hashToken(csrf), auth.SESSION_TTL_HOURS || 8);
+  db.ensureBrowserSession(user.id);
   auth.setSessionCookie(res, token);
   db.updateUser(user.id, { lastLoginAt: new Date().toISOString() });
   db.createAuditLog({ actorUserId: user.id, action: 'login_success', targetType: 'user', targetId: user.id });
@@ -178,6 +189,7 @@ app.post('/api/auth/register', auth.requireSameOrigin, async (req, res) => {
   try { hash = await auth.hashPassword(password); }
   catch (e) { return res.status(400).json({ error: e.message }); }
   const id = db.createUser({ username: username.trim(), passwordHash: hash, role: 'user', email: email || null, displayName: displayName || null });
+  db.ensureBrowserSession(id);
   db.createAuditLog({ actorUserId: id, action: 'register', targetType: 'user', targetId: id, details: 'Self-registration' });
   res.json({ ok: true, id });
 });
@@ -202,9 +214,11 @@ app.get('/api/auth/me', auth.requireSession(), (req, res) => {
 // container status api (user)
 app.get('/api/container/status', auth.requireSession(), (req, res) => {
   const userId = req.user.id;
+  const browserSession = db.ensureBrowserSession(userId);
   const sessions = containers.listUserSessions();
   const mine = sessions.find(s => s.userId === userId);
   res.json({
+    session: { id: browserSession.id, displayName: browserSession.display_name, createdAt: browserSession.created_at, lastActivityAt: browserSession.last_activity_at },
     running: containers.isRunning(userId),
     state: containers.inspectState(userId),
     startedAt: containers.inspectStartedAt(userId),
@@ -282,6 +296,7 @@ app.post('/api/admin/users', auth.requireSession(), auth.requireAdmin, auth.requ
   try { hash = await auth.hashPassword(password); }
   catch (e) { return res.status(400).json({ error: e.message }); }
   const id = db.createUser({ username: username.trim(), passwordHash: hash, role: role === 'admin' ? 'admin' : 'user', email: email || null, displayName: displayName || null });
+  db.ensureBrowserSession(id);
   audit(req, 'user_create', 'user', id, `username=${username.trim()} role=${role === 'admin' ? 'admin' : 'user'}`);
   res.json({ ok: true, id });
 });
@@ -493,6 +508,13 @@ async function handleBrowser(req, res) {
   const su = getSessionUser(req);
   if (!su) return res.redirect('/login');
   const userId = su.user.id;
+  const requestedSession = req.path.match(/^\/([0-9a-f-]{36})(?:\/|$)/i);
+  const browserSession = requestedSession
+    ? db.getBrowserSessionById(requestedSession[1])
+    : db.ensureBrowserSession(userId);
+  if (!browserSession || browserSession.user_id !== userId) return res.sendStatus(404);
+  if (requestedSession) req.url = req.url.replace(/^\/[0-9a-f-]{36}(?=\/|\?|$)/i, '') || '/';
+  db.touchBrowserSession(browserSession.id);
   containers.touchActivity(userId);
   try {
     await containers.startContainer(userId);
@@ -523,6 +545,12 @@ server.on('upgrade', async (req, socket, head) => {
   const su = getSessionUser(req);
   if (!su) { socket.destroy(); return; }
   const userId = su.user.id;
+  const requestedSession = req.url.match(/^\/browser\/([0-9a-f-]{36})(?=\/|\?|$)/i);
+  const browserSession = requestedSession
+    ? db.getBrowserSessionById(requestedSession[1])
+    : db.ensureBrowserSession(userId);
+  if (!browserSession || browserSession.user_id !== userId) { socket.destroy(); return; }
+  db.touchBrowserSession(browserSession.id);
   containers.touchActivity(userId);
   try {
     await containers.startContainer(userId);
@@ -531,7 +559,7 @@ server.on('upgrade', async (req, socket, head) => {
     return;
   }
   // strip prefix
-  req.url = req.url.replace(/^\/browser/, '') || '/';
+  req.url = req.url.replace(/^\/browser(?:\/[0-9a-f-]{36})?(?=\/|\?|$)/i, '') || '/';
   const target = `http://${containers.containerName(userId)}:3000`;
   proxy.ws(req, socket, head, { target });
 });

@@ -129,6 +129,7 @@ function toast(msg,type='success'){const t=document.getElementById('toast');t.te
 function fmtDate(s){if(!s)return '-';try{return new Date(s).toLocaleString();}catch{return s;}}
 function fmtMs(ms){if(ms==null)return '-';const s=Math.round(ms/1000);if(s<60)return s+'s';const m=Math.round(s/60);if(m<60)return m+'min';return Math.round(m/60)+'h';}
 function parseNum(str){if(!str)return 0;const m=String(str).match(/([\d.]+)/);return m?parseFloat(m[1]):0;}
+function escapeHTML(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
 
 document.querySelectorAll('.nav[data-section]').forEach(n=>{
   n.addEventListener('click',()=>{
@@ -175,12 +176,12 @@ async function loadOverview(){
   for(const s of (j.containers||[])){
     trackHistory(s);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td><strong>${s.user?s.user.username:'user '+s.userId}</strong></td>
-      <td><span class="badge ${s.running?'run':'off'}">${s.state}</span></td>
-      <td>${fmtDate(s.startedAt)}</td>
-      <td>${fmtMs(s.idleMs)}</td>
-      <td>${s.stats?s.stats.cpu:'-'}</td>
-      <td>${s.stats?s.stats.memUsage:'-'}</td>
+    tr.innerHTML=`<td><strong>${escapeHTML(s.user?s.user.username:'user '+s.userId)}</strong></td>
+      <td><span class="badge ${s.running?'run':'off'}">${escapeHTML(s.state)}</span></td>
+      <td>${escapeHTML(fmtDate(s.startedAt))}</td>
+      <td>${escapeHTML(fmtMs(s.idleMs))}</td>
+      <td>${escapeHTML(s.stats?s.stats.cpu:'-')}</td>
+      <td>${escapeHTML(s.stats?s.stats.memUsage:'-')}</td>
       <td><button class="btn sm" onclick="sessionStop(${s.userId})">Stop</button></td>`;
     tb.appendChild(tr);
   }
@@ -208,10 +209,10 @@ function renderUsers(){
   for(const u of rows){
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${u.id}</td>
-      <td><strong>${u.username}</strong>${u.email?`<br><span class="small muted">${u.email}</span>`:''}</td>
-      <td><span class="badge ${u.role==='admin'?'warn':'run'}">${u.role}</span></td>
+      <td><strong>${escapeHTML(u.username)}</strong>${u.email?`<br><span class="small muted">${escapeHTML(u.email)}</span>`:''}</td>
+      <td><span class="badge ${u.role==='admin'?'warn':'run'}">${escapeHTML(u.role)}</span></td>
       <td><span class="badge ${u.active?'ok':'off'}">${u.active?'active':'inactive'}</span></td>
-      <td>${fmtDate(u.last_login_at)}</td>
+      <td>${escapeHTML(fmtDate(u.last_login_at))}</td>
       <td><span class="badge ${u.hasActiveSession?'run':'off'}">${u.hasActiveSession?'active':'-'}</span></td>
       <td></td>`;
     const td=tr.querySelector('td:last-child');
@@ -257,7 +258,7 @@ async function doResetPwd(id){
   closeModal();toast('Password updated','success');
 }
 async function resetAccess(id,name){
-  showModal(`<h3>Reset access</h3><p>Reset access for <strong>${name}</strong>?<br><span class="small muted">Sessions revoked, container removed (profile kept).</span></p><div class="row"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn warn" onclick="doResetAccess(${id})">Confirm</button></div>`);
+  showModal(`<h3>Reset access</h3><p>Reset access for <strong>${escapeHTML(name)}</strong>?<br><span class="small muted">Sessions revoked, container removed (profile kept).</span></p><div class="row"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn warn" onclick="doResetAccess(${id})">Confirm</button></div>`);
 }
 async function doResetAccess(id){
   const res=await fetch('/api/admin/users/'+id+'/reset-access',{method:'POST',credentials:'same-origin',headers:{'Origin':location.origin,'X-CSRF-Token':await csrf()}});
@@ -266,7 +267,7 @@ async function doResetAccess(id){
   closeModal();toast('Access reset','success');loadUsers();loadSessions();
 }
 async function delUser(id,name){
-  showModal(`<h3>Delete user</h3><p>Delete <strong>${name}</strong> and browser?<br><span class="small muted" style="color:var(--danger)">Irreversible.</span></p><div class="row"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn danger" onclick="doDelUser(${id})">Delete</button></div>`);
+  showModal(`<h3>Delete user</h3><p>Delete <strong>${escapeHTML(name)}</strong> and browser?<br><span class="small muted" style="color:var(--danger)">Irreversible.</span></p><div class="row"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn danger" onclick="doDelUser(${id})">Delete</button></div>`);
 }
 async function doDelUser(id){
   const res=await fetch('/api/admin/users/'+id,{method:'DELETE',credentials:'same-origin',headers:{'Origin':location.origin,'X-CSRF-Token':await csrf()}});
@@ -283,13 +284,13 @@ async function loadSessions(){
     if(!s.running) continue;
     trackHistory(s);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td><strong>${s.user?s.user.username:'user '+s.userId}</strong></td>
-      <td>${s.name}</td>
-      <td><span class="badge run">${s.state}</span></td>
-      <td>${fmtDate(s.startedAt)}</td>
-      <td>${fmtMs(s.idleMs)}</td>
-      <td>${s.stats?s.stats.cpu:'-'}</td>
-      <td>${s.stats?s.stats.memUsage:'-'}</td>
+    tr.innerHTML=`<td><strong>${escapeHTML(s.user?s.user.username:'user '+s.userId)}</strong></td>
+      <td>${escapeHTML(s.name)}</td>
+      <td><span class="badge run">${escapeHTML(s.state)}</span></td>
+      <td>${escapeHTML(fmtDate(s.startedAt))}</td>
+      <td>${escapeHTML(fmtMs(s.idleMs))}</td>
+      <td>${escapeHTML(s.stats?s.stats.cpu:'-')}</td>
+      <td>${escapeHTML(s.stats?s.stats.memUsage:'-')}</td>
       <td><button class="btn sm" onclick="sessionStop(${s.userId})">Stop</button> <button class="btn sm warn" onclick="sessionRestart(${s.userId})">Restart</button></td>`;
     tb.appendChild(tr);
   }
@@ -298,7 +299,7 @@ async function loadSessions(){
   ib.innerHTML='';
   for(const s of (j.inactive||[])){
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td><strong>${s.user?s.user.username:'user '+s.userId}</strong></td><td><span class="badge off">absent</span></td><td><button class="btn sm success" onclick="startUserBrowser(${s.userId})">Start</button></td>`;
+    tr.innerHTML=`<td><strong>${escapeHTML(s.user?s.user.username:'user '+s.userId)}</strong></td><td><span class="badge off">absent</span></td><td><button class="btn sm success" onclick="startUserBrowser(${s.userId})">Start</button></td>`;
     ib.appendChild(tr);
   }
   if(!(j.inactive||[]).length){ib.innerHTML='<tr><td colspan="3" class="empty">None</td></tr>';}
@@ -341,7 +342,7 @@ async function loadResources(){
   for(const s of (j.sessions||[])){
     if(!s.running) continue;
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${s.name}</td><td>${s.user?s.user.username:'user '+s.userId}</td><td>${s.stats?s.stats.cpu:'-'}</td><td>${s.stats?s.stats.memUsage:'-'}</td><td>${s.stats?s.stats.pids:'-'}</td>`;
+    tr.innerHTML=`<td>${escapeHTML(s.name)}</td><td>${escapeHTML(s.user?s.user.username:'user '+s.userId)}</td><td>${escapeHTML(s.stats?s.stats.cpu:'-')}</td><td>${escapeHTML(s.stats?s.stats.memUsage:'-')}</td><td>${escapeHTML(s.stats?s.stats.pids:'-')}</td>`;
     tb.appendChild(tr);
   }
   if(!tb.children.length){tb.innerHTML='<tr><td colspan="5" class="empty">No active sessions</td></tr>';}
@@ -353,7 +354,7 @@ async function loadAudit(){
   tb.innerHTML='';
   for(const e of (j.entries||[])){
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${fmtDate(e.created_at)}</td><td><strong>${e.actor_username||'-'}</strong></td><td><span class="badge run">${e.action}</span></td><td>${e.target_type||''} ${e.target_id||''}</td><td class="small">${e.details||''}</td>`;
+    tr.innerHTML=`<td>${escapeHTML(fmtDate(e.created_at))}</td><td><strong>${escapeHTML(e.actor_username||'-')}</strong></td><td><span class="badge run">${escapeHTML(e.action)}</span></td><td>${escapeHTML(e.target_type||'')} ${escapeHTML(e.target_id||'')}</td><td class="small">${escapeHTML(e.details||'')}</td>`;
     tb.appendChild(tr);
   }
   if(!(j.entries||[]).length){tb.innerHTML='<tr><td colspan="5" class="empty">No entries</td></tr>';}
@@ -366,7 +367,7 @@ async function loadSettings(){
     <table><tr><th>Setting</th><th>Value</th></tr>
     <tr><td>Max concurrent sessions</td><td><strong>${j.maxSessions}</strong></td></tr>
     <tr><td>Idle auto-stop</td><td><strong>${Math.round(j.idleStopMs/60000)} min</strong></td></tr>
-    <tr><td>Chromium image</td><td><code>${j.chromiumImage}</code></td></tr>
+    <tr><td>Chromium image</td><td><code>${escapeHTML(j.chromiumImage)}</code></td></tr>
     <tr><td>Auth session TTL</td><td><strong>${j.sessionTtlHours} h</strong></td></tr>
     </table>
     <p class="small muted" style="margin-top:10px">Edit environment variables in docker-compose.yml then restart.</p>
